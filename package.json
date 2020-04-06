@@ -1,5 +1,5 @@
 {
-  "name": "igno-reports",
+  "name": "igno-linechart",
   "version": "1.0.0",
   "description": "Gapminder linechart generator for igno reports and ignofix app",
   "main": "index.html",
