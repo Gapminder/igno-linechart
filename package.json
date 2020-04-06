@@ -1,0 +1,34 @@
+{
+  "name": "igno-reports",
+  "version": "1.0.0",
+  "description": "Gapminder linechart generator for igno reports and ignofix app",
+  "main": "index.html",
+  "scripts": {
+    "start": "rollup -c --watch",
+    "build": "rollup -c",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Gapminder/igno-reports.git"
+  },
+  "author": "angie@gapminder.org",
+  "license": "BSD-3-Clause",
+  "bugs": {
+    "url": "https://github.com/Gapminder/igno-reports/issues"
+  },
+  "homepage": "https://github.com/Gapminder/igno-reports#readme",
+  "devDependencies": {
+    "rollup": "^1.31.1",
+    "rollup-plugin-copy": "^3.3.0",
+    "rollup-plugin-delete": "^1.2.0",
+    "rollup-plugin-livereload": "^1.0.4",
+    "rollup-plugin-node-resolve": "^5.2.0",
+    "rollup-plugin-serve": "^1.0.1"
+  },
+  "dependencies": {
+    "d3": "^5.15.0",
+    "vizabi-ddfservice-reader": "^2.0.1",
+    "save-svg-as-png": "^1.4.17"
+  }
+}

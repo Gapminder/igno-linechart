@@ -1,0 +1,105 @@
+:root {
+  --accent-color: #ff8000;
+  --background-color: rgb(72, 26, 147);
+  --correct-color: green;
+  --wrong-color: orange;
+  --vwrong-color: red;
+}
+
+* {
+  font-family: sans-serif;
+  background-repeat: no-repeat;
+  background-size: contain;
+  
+  -moz-box-sizing: border-box; 
+  -webkit-box-sizing: border-box; 
+  box-sizing: border-box; 
+}
+
+body {
+  margin: 0 0 0 0;
+  padding: 2vw;
+}
+a {
+  color: blue;
+}
+a:hover {
+  text-decoration: underline;
+  cursor: pointer;
+}
+.invisible {
+  display: none
+}
+.container {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+.render {
+  position: relative;
+}
+.report {
+  position: relative;
+}
+
+
+
+.back {
+  margin-bottom: 10px;
+}
+
+.nav .list span {
+  margin-right: 5px;
+  float: left;
+}
+
+.nav .section {
+  margin-bottom: 30px;
+}
+.nav .section .title {
+  margin-bottom: 10px;
+}
+
+.nav .dl-all {
+  padding: 5px;
+  border: 1px solid black;
+  display: inline-block;
+  border-radius: 2px;
+  background-color: aquamarine;
+}
+
+
+
+
+.linechart .line{
+  fill: none;
+  stroke: var(--accent-color);
+  stroke-width: 8px;
+}
+.linechart marker#cicle, marker#arrow {
+  fill: var(--accent-color);
+  stroke: var(--accent-color);
+}
+
+svg.linechart text{font-family: "Arial Rounded MT Bold"}
+
+.linechart .x.axis text {font-size: 20px}
+.linechart .y.axis text {font-size: 20px}
+
+.linechart text.endvalue {
+  font-size: 40px;
+  fill: var(--accent-color);
+}
+
+.linechart line.option {
+  stroke-width: 4px;
+  stroke-dasharray: 5 5;
+}
+
+.linechart text.option {font-size: 18px}
+.linechart text.option.correct {fill: var(--correct-color)}
+.linechart line.option.correct {stroke: var(--correct-color)}
+.linechart text.option.wrong {fill: var(--wrong-color)}
+.linechart line.option.wrong {stroke: var(--wrong-color)}
+.linechart text.option.vwrong {fill: var(--vwrong-color)}
+.linechart line.option.vwrong {stroke: var(--vwrong-color)}
