@@ -5,4 +5,4 @@ see demo
 http://static.gapminderdev.org/igno-linechart/
 
 result looks like this 
-![Image of generated linechart](https://github.com/Gapminder/igno-linechart/master/readme.png)
+![Image of generated linechart](https://raw.githubusercontent.com/Gapminder/igno-linechart/master/readme.png)
