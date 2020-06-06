@@ -13,6 +13,6 @@ export default function format(style) {
       suffix = "%"
     }
 
-    return d3.format(".2~s")(d) + suffix;
+    return d3.format(".2~s")(d).replace("G","B") + suffix;
   }
 };

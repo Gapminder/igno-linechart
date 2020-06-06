@@ -1,9 +1,8 @@
 :root {
-  --accent-color: #ff8000;
-  --background-color: rgb(72, 26, 147);
-  --correct-color: green;
-  --wrong-color: orange;
-  --vwrong-color: red;
+  --accent-color: #59c364;
+  --black-color: #282828;
+  --grey-color: #717171;
+  --wrong-color: #ee3c65;
 }
 
 * {
@@ -15,6 +14,58 @@
   -webkit-box-sizing: border-box; 
   box-sizing: border-box; 
 }
+
+
+@font-face {
+  font-family: Rubik-MediumItalic.ttf
+  src: url("assets/fonts/Rubik-MediumItalic.ttf") format("truetype")
+}
+
+@font-face {
+  font-family: Rubik-LightItalic.ttf
+  src: url("assets/fonts/Rubik-LightItalic.ttf") format("truetype")
+}
+
+@font-face {
+  font-family: Rubik-Italic.ttf
+  src: url("assets/fonts/Rubik-Italic.ttf") format("truetype")
+}
+
+@font-face {
+  font-family: Rubik-Regular.ttf
+  src: url("assets/fonts/Rubik-Regular.ttf") format("truetype")
+}
+
+@font-face {
+  font-family: Rubik-Black.ttf
+  src: url("assets/fonts/Rubik-Black.ttf") format("truetype")
+}
+
+@font-face {
+  font-family: Rubik-Light.ttf
+  src: url("assets/fonts/Rubik-Light.ttf") format("truetype")
+}
+
+@font-face {
+  font-family: Rubik-Medium.ttf
+  src: url("assets/fonts/Rubik-Medium.ttf") format("truetype")
+}
+
+@font-face {
+  font-family: Rubik-Bold.ttf
+  src: url("assets/fonts/Rubik-Bold.ttf") format("truetype")
+}
+
+@font-face {
+  font-family: Rubik-BlackItalic.ttf
+  src: url("assets/fonts/Rubik-BlackItalic.ttf") format("truetype")
+}
+
+@font-face {
+  font-family: Rubik-BoldItalic.ttf
+  src: url("assets/fonts/Rubik-BoldItalic.ttf") format("truetype")
+}
+
 
 body {
   margin: 0 0 0 0;
@@ -81,25 +132,39 @@ a:hover {
   stroke: var(--accent-color);
 }
 
-svg.linechart text{font-family: "Arial Rounded MT Bold"}
+svg.linechart text{font-family: "Rubik-Regular"}
 
-.linechart .x.axis text {font-size: 20px}
-.linechart .y.axis text {font-size: 20px}
 
-.linechart text.endvalue {
-  font-size: 40px;
-  fill: var(--accent-color);
+.linechart .title,
+.linechart .source {
+  font-size: 20pt;
+  fill: var(--grey-color)
+}
+.linechart .axis text {
+  font-size: 20pt;
+  fill: var(--grey-color);
 }
 
-.linechart line.option {
-  stroke-width: 4px;
-  stroke-dasharray: 5 5;
+.linechart .axis path,
+.linechart .axis line {
+  stroke-width: 2pt;
+  stroke: var(--grey-color);
 }
 
-.linechart text.option {font-size: 18px}
-.linechart text.option.correct {fill: var(--correct-color)}
-.linechart line.option.correct {stroke: var(--correct-color)}
-.linechart text.option.wrong {fill: var(--wrong-color)}
-.linechart line.option.wrong {stroke: var(--wrong-color)}
-.linechart text.option.vwrong {fill: var(--vwrong-color)}
-.linechart line.option.vwrong {stroke: var(--vwrong-color)}
+
+.linechart text.endvalue,
+.linechart text.startvalue {
+  font-size: 26pt;
+  font-family: "Rubik-Medium";
+  fill: var(--black-color);
+}
+
+.linechart text.startvalue {
+  text-anchor: middle;
+}
+
+.linechart text.reference, 
+.linechart circle.reference {
+  font-size: 20pt;
+  fill: var(--wrong-color);
+}

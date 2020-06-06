@@ -18551,16 +18551,22 @@
         suffix = "%";
       }
 
-      return d3.format(".2~s")(d) + suffix;
+      return d3.format(".2~s")(d).replace("G","B") + suffix;
     }
   }
 
-  function makeLinechart({view, graph={}, data_sources={}, geo="", template="", igno = {}, options}){
+  function makeLinechart({view, graph={}, data_sources={}, geo="", template="",  options}){
 
     const svg = view.append("svg").attr("class", "linechart");
 
-    const measure_id = graph.indicator.split("@")[0];
-    const dataset = graph.indicator.split("@")[1];
+    const measure_id = graph.indicator;
+    const dataset = graph.dataset;
+    
+    const timeStart = graph.time_interval.split("-")[0];
+    const timeEnd = graph.time_interval.split("-")[1];
+    const time_interval = {};
+    if (!isNaN(timeStart)) time_interval["$gte"] = timeStart;
+    if (!isNaN(timeEnd)) time_interval["$lte"] = timeEnd;
     
     return new Promise((resolve, reject) => {
     
@@ -18569,17 +18575,28 @@
       } else {
 
         data_sources[dataset].reader
-          .read({select: {key: ["geo", "time"], value: [measure_id]}, where: {country: {"$in": [graph.geo_id]}}, from: "datapoints"})
+          .read({
+            select: {
+              key: ["geo", "time"], 
+              value: [measure_id]
+            }, 
+            where: {
+              country: {"$in": [graph.geo_id]},
+              time: time_interval
+            }, 
+            from: "datapoints"
+          })
           .then(data => {
             linechart({
               measure_id, 
               geo_id: graph.geo_id, 
+              reference_values: JSON.parse(graph.reference_values || "[]"), 
+              titleText: graph.title,
+              sourceText: graph.source,
+              y_domain: graph.y_domain,
               data, 
               svg, 
-              geoProps: geo,
               conceptProps: data_sources[dataset].concepts.find(c => c.concept == measure_id),
-              template,
-              igno,
               options
             });
             resolve(svg);
@@ -18604,14 +18621,14 @@
     geoProps = {geo: "rwa", name: "Rwanda"},
     conceptProps = {concept: "lex", name: "Life expectancy"},
     template = {data coming from spreadsheet about template questions},
-    igno = {data coming from spreadsheet about particular igno questions, needed to make reference lines},
+    reference_values = [{"time":2019, "value": 29, "text": "Your answer"}],
     options = {"chart title": "on"}
   }
   */
-  function linechart({measure_id = "", geo_id = "", data = [], svg, geoProps = {}, conceptProps = {}, template = {}, igno = {}, options = {}}){
-    const MARGIN = {top: 50, right: 200, bottom: 50, left: 75};
-    const WIDTH = 640 - MARGIN.left - MARGIN.right;
-    const HEIGHT = 480 - MARGIN.top - MARGIN.bottom;  
+  function linechart({measure_id = "", geo_id = "", data = [], svg, geoProps = {}, conceptProps = {}, reference_values = [], y_domain, titleText="", sourceText="", options = {}}){
+    const MARGIN = {top: 50, right: 65, bottom: 75, left: 85};
+    const WIDTH = 654 - MARGIN.left - MARGIN.right;
+    const HEIGHT = 462 - MARGIN.top - MARGIN.bottom;  
     
     svg
       .attr("width", WIDTH + MARGIN.left + MARGIN.right + "px")
@@ -18620,21 +18637,24 @@
     if (!data.length) {
       svg.append("text")
         .attr("dy", "20px")
-        .text(`EMPTY DATA for ${template["template short name"]} and ${geo_id}`).style("fill", "red");
+        .text(`EMPTY DATA for ${titleText} and ${geo_id}`).style("fill", "red");
       
     } else {
       
-      const PERCENT = template["template short name"].includes("%");
+      const PERCENT = conceptProps.format === "percent";
       let formatter = format$1(PERCENT? "PERCENT" : "");
       
       svg.append("svg:defs").append("svg:marker")
         .attr("id", "arrow")
-        .attr("viewBox", "-10 -7 12 12")
+        .attr("viewBox", "-8 -7 12 12")
+        .attr("refX", "-7px")
         .attr("markerWidth", 5)
         .attr("markerHeight", 5)
         .attr("orient", "auto")
+        .style("stroke-linejoin", "round")
+        .style("stroke-width", "3px")
         .append("svg:path")
-        .attr("d", "M-7,-4L1,0L-7,4");
+        .attr("d", "M-6,-3L1,0L-6,3Z");
       
       svg.append("svg:defs").append("svg:marker")
         .attr("id", "cicle")
@@ -18650,20 +18670,41 @@
       const g = svg.append("g")
         .attr("transform", "translate(" + MARGIN.left + "," + MARGIN.top + ")");
       
-      if(options["chart title"] === "on") g.append("text").attr("dy","-10px").text(conceptProps.name + " in " + geoProps.name);
+      if(options["chart title"] === "on") g.append("text")
+        .attr("dy","-30px")
+        .attr("dx", -MARGIN.left + "px")
+        .attr("class","title")
+        .text(titleText);
+      
+      if(options["source text"] === "on") g.append("text")
+        .attr("dy", HEIGHT + MARGIN.bottom - 10 + "px")
+        .attr("dx", -MARGIN.left + "px")
+        .attr("class","source")
+        .text(sourceText);
       
       //adds 10% of x axis domain from start and end
-      function domainBump(domain){
+      function domainTimeBump(domain){
         const bump = parseInt(d3.timeYear.count(domain[0], domain[1]) / 10);
         return [d3.timeYear.offset(domain[0], -bump), d3.timeYear.offset(domain[1], bump)];
       }
+    
+      //adds 10% of y axis domain from start and end
+      function domainLinearBump(domain){
+        const bump = Math.abs(domain[0] - domain[1]) / 10;
+        return [(domain[0] - bump), (domain[1] + bump)];
+      }
       
       var xScale = d3.scaleTime()
-        .domain(domainBump(d3.extent(data.map(m => m.time))))
+        .domain(domainTimeBump(d3.extent(data.map(m => m.time))))
         .range([0, WIDTH]);
       
+      let domain = [];
+      if (y_domain) domain = JSON.parse(y_domain);
+      else if (PERCENT) domain = [0,100];
+      else domain = domainLinearBump(d3.extent(data.map(m => m[measure_id])));
+        
       var yScale = d3.scaleLinear()
-        .domain(PERCENT ? [0,100] : d3.extent(data.map(m => m[measure_id])))
+        .domain(domain)
         .range([HEIGHT, 0]);
       
       var line = d3.line()
@@ -18688,60 +18729,66 @@
         .attr("d", line);
       
       
-      function addReference({view, text, cssClass, yValue}) {
+      function addReference({time, value, text="", cssClass="reference"}) {
         
-        let y = yScale(yValue);
+        let y = yScale(value);
+        let x = xScale(new Date(time+""));
       
-        view.append("line")
+        g.append("circle")
           .attr("class", "option " + cssClass)
-          .attr("x1", WIDTH)
-          .attr("x2", WIDTH + MARGIN.right)
-          .attr("y1", y)
-          .attr("y2", y);
+          .attr("cx", x)
+          .attr("cy", y)
+          .attr("r", 10);
         
-        view.append("text")
+        g.append("text")
           .attr("class", "option " + cssClass)
-          .attr("text-anchor", "end")
-          .attr("dy", -5)
-          .attr("dx", -4)
-          .attr("x", WIDTH + MARGIN.right)
+          .attr("text-anchor", "middle")
+          .attr("dy", -20)
+          .attr("dx", 0)
+          .attr("x", x)
           .attr("y", y)
           .text(text);
       }
       
-      if (d3.keys(igno).length) {
-        addReference({view: g, text: "Correct", cssClass: "correct", yValue: igno[igno.correct] * (PERCENT ? 100 : 1)});
-        addReference({view: g, text: "Wrong", cssClass: "wrong", yValue: igno[igno.wrong] * (PERCENT ? 100 : 1)});
-        addReference({view: g, text: "Very wrong", cssClass: "vwrong", yValue: igno[igno["very wrong"]] * (PERCENT ? 100 : 1)});
-      }
+      reference_values.forEach(addReference);
       
       const endTime = d3.max(data.map(m => m.time));
       const endValue = data.find(f => f.time - endTime == 0)[measure_id];
-      const upperHalf = yScale(endValue) < HEIGHT/2;
+      const upperHalfEndValue = yScale(endValue) < HEIGHT/2;
       
       g.append("text")
         .attr("class", "endvalue")
         .attr("text-anchor", "start")
-        .attr("dy", upperHalf? "50px" : "-30px")
+        .attr("dy", upperHalfEndValue? "50px" : "-30px")
         .attr("dx", 0)
         .attr("x", xScale(endTime))
         .attr("y", yScale(endValue))
         .text(formatter(endValue));
+      
+      const startTime = d3.min(data.map(m => m.time));
+      const startValue = data.find(f => f.time - startTime == 0)[measure_id];
+      const upperHalfStartValue = yScale(startValue) < HEIGHT/2;
+      
+      g.append("text")
+        .attr("class", "startvalue")
+        .attr("text-anchor", "start")
+        .attr("dy", upperHalfStartValue? "50px" : "-30px")
+        .attr("dx", 0)
+        .attr("x", xScale(startTime))
+        .attr("y", yScale(startValue))
+        .text(formatter(startValue));
     }
+    
+    
 
   }
 
   window.d3 = d3$1;
   window.saveSvgAsPng = saveSvgAsPng;
 
-  const QUESTIONS_KEY = "115e3rQgfs96MwkrjN9Hh7GJQVHylng7QzBhgF5FFArw";
-  const QUESTIONS_IGNOS_SHEET = "Ignos";
-
-  const INSTRUCTIONS_KEY = "1OmmVh9M6Q-3Nb0Fy0xGyYsnDYQbl4fBCmvkCa_rdCf0";
+  const INSTRUCTIONS_KEY = "1rfTrNxyC16pS2Lv5RRa0RmFDm2_4UWzbhKXivb5CpkI";
   const INSTRUCTIONS_GRAPHS_SHEET = "graph_list";
-  const INSTRUCTIONS_TEMPLATES_SHEET = "all_templates";
   const INSTRUCTIONS_OPTIONS_SHEET = "options";
-  const INSTRUCTIONS_GEOS_SHEET = "all_geos";
 
   function googleSheetLink(key, sheet){
     return `https://docs.google.com/spreadsheets/d/${key}/gviz/tq?tqx=out:csv&sheet=${sheet}`;
@@ -18765,35 +18812,23 @@
 
   // fetch instructions
   let graphs = [];
-  let templates = [];
   let options = {};
-  let geos = [];
-  let ignos = [];
 
   const fetch_instructions = [
     csv$1(googleSheetLink(INSTRUCTIONS_KEY, INSTRUCTIONS_GRAPHS_SHEET))
       .then(result => graphs = result)
       .catch(error => console.error(error)),
-    csv$1(googleSheetLink(INSTRUCTIONS_KEY, INSTRUCTIONS_TEMPLATES_SHEET))
-      .then(result => templates = result)
-      .catch(error => console.error(error)),
     csv$1(googleSheetLink(INSTRUCTIONS_KEY, INSTRUCTIONS_OPTIONS_SHEET))
       .then(result => result.forEach(kv => options[kv.key] = kv.value))
       .catch(error => console.error(error)),
-    csv$1(googleSheetLink(INSTRUCTIONS_KEY, INSTRUCTIONS_GEOS_SHEET))
-      .then(result => geos = result)
-      .catch(error => console.error(error)),
-    csv$1(googleSheetLink(QUESTIONS_KEY, QUESTIONS_IGNOS_SHEET))
-      .then(result => ignos = result)
-      .catch(error => console.error(error))
   ];
 
   // init readers
   const fetch_concept_props = [];
 
   const data_sources = {
-    "open_numbers_sg": {dataset: "sg-master"},
-    "open_numbers_wdi": {dataset: "wdi-master"}
+    "open_numbers_sg": {dataset: "SG-develop"},
+    "fasttrack": {dataset: "fasttrack"}
   };
 
   Object.keys(data_sources).map(m => {
@@ -18801,7 +18836,7 @@
     v.reader = DDFServiceReader.getReader();
     v.reader.init({service: 'https://big-waffle.gapminder.org', name: v.dataset});
     v.conceptPromise = v.reader
-      .read({select: {key: ["concept"], value: ["name"]}, from: "concepts"})
+      .read({select: {key: ["concept"], value: ["name", "name_short", "format"]}, from: "concepts"})
       .then(result => v.concepts = result)
       .catch(error => console.error(error));
     fetch_concept_props.push(v.conceptPromise);
@@ -18827,7 +18862,7 @@
     
     
     graphs.forEach(graph => {
-      DOM.graphs.append("span").append("a").text(graph.id + ",").on("click", ()=>{setUrlParams({graph: graph.id});});
+      DOM.graphs.append("div").append("a").text(graph.id + ": " + graph.title).on("click", ()=>{setUrlParams({graph: graph.id});});
     });
     
 
@@ -18840,28 +18875,29 @@
     function render (params){
       if (params.graph){
         let graph = graphs.find(f => f.id == params.graph);
-        let geo = geos.find(f => f.geo_id == graph.geo_id);
-        let template = templates.find(f => f.template_id == graph.id.split("_")[0]);
-        makeLinechart({view: DOM.render, graph, data_sources, geo, template, options});
+        makeLinechart({view: DOM.render, graph, data_sources, options});
       }
     }  
     render(params);
     
     
     function downloadAll() {
-      graphs.forEach(graph => {
-
-        let geo = geos.find(f => f.geo_id == graph.geo_id);
-        let template = templates.find(f => f.template_id == graph.id.split("_")[0]);
+      
+      const interval = setInterval(function(){
+        const graph = graphs.pop();
         
-        makeLinechart({view: DOM.render, graph, data_sources, geo, template, options})
-          .then((svg)=>{
-            downloadChart(svg, graph.id + ".png")
-              .then(()=>svg.remove());
-          });
-
-
-      });
+        if (graph) {
+          makeLinechart({view: DOM.render, graph, data_sources, options})
+            .then((svg)=>{
+              downloadChart(svg, graph.id + " " + graph.title + ".png")
+                .then(()=>svg.remove());
+            });
+        } else {
+          clearInterval(interval);
+        }
+      
+      }, 300); 
+      
     }
     
     
