@@ -73,7 +73,7 @@ example: {
 export function linechart({measure_id = "", geo_id = "", data = [], svg, geoProps = {}, conceptProps = {}, reference_values = [], y_domain, titleText="", sourceText="", options = {}}){
   const MARGIN = {
     top: options["margin top"] || 20, 
-    bottom: options["margin bottom"] || 30, 
+    bottom: options["margin bottom"] || 35, 
     left: options["margin left"] ||  80,
     right: options["margin right"] || 65 
   }

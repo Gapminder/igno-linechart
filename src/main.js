@@ -122,7 +122,7 @@ Promise.all(fetch_concept_props.concat(fetch_instructions)).then(result => {
   
   
   async function downloadChart(view, name){
-    return saveSvgAsPng(view.node(), name);
+    return saveSvgAsPng(view.node(), name, {scale: 2});
   }
   
 })

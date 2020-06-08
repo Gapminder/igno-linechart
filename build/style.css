@@ -132,7 +132,7 @@ a:hover {
   stroke: var(--accent-color);
 }
 
-svg.linechart text{font-family: "Rubik-Regular"}
+svg.linechart text{font-family: "Rubik-Light"}
 
 
 .linechart .title,
@@ -147,7 +147,8 @@ svg.linechart text{font-family: "Rubik-Regular"}
 
 .linechart .axis path,
 .linechart .axis line {
-  stroke-width: 2pt;
+  stroke-linecap: round;
+  stroke-width: 2px;
   stroke: var(--grey-color);
 }
 
