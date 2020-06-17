@@ -163,7 +163,6 @@ svg.linechart text{font-family: "Rubik-Light"}
 
 .linechart text.startvalue {
   text-anchor: middle;
-  visibility: hidden;
 }
 .linechart text.endvalue {
   fill: var(--black-color);
@@ -173,4 +172,9 @@ svg.linechart text{font-family: "Rubik-Light"}
 .linechart circle.reference {
   font-size: 20pt;
   fill: var(--wrong-color);
+}
+
+.linechart text.multiplier{
+  font-size: 20pt;
+  fill: var(--grey-color);
 }
