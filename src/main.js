@@ -45,8 +45,9 @@ const fetch_instructions = [
 const fetch_concept_props = [];
 
 const data_sources = {
-  "open_numbers_sg": {dataset: "SG-develop"},
-  "fasttrack": {dataset: "fasttrack"}
+  "SG-develop": {dataset: "SG-develop"},
+  "fasttrack": {dataset: "fasttrack"},
+  "wdi-master": {dataset: "wdi-master"}
 }
 
 Object.keys(data_sources).map(m => {
