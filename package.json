@@ -19,16 +19,16 @@
   },
   "homepage": "https://github.com/Gapminder/igno-reports#readme",
   "devDependencies": {
-    "rollup": "^1.31.1",
-    "rollup-plugin-copy": "^3.3.0",
-    "rollup-plugin-delete": "^1.2.0",
-    "rollup-plugin-livereload": "^1.0.4",
+    "rollup": "^2.70.1",
+    "rollup-plugin-copy": "^3.4.0",
+    "rollup-plugin-delete": "^2.0.0",
+    "rollup-plugin-livereload": "^2.0.5",
     "rollup-plugin-node-resolve": "^5.2.0",
-    "rollup-plugin-serve": "^1.0.1"
+    "rollup-plugin-serve": "^1.1.0"
   },
   "dependencies": {
-    "d3": "^5.15.0",
-    "vizabi-ddfservice-reader": "^2.0.1",
+    "d3": "^7.4.2",
+    "vizabi-ddfservice-reader": "^2.2.0",
     "save-svg-as-png": "^1.4.17"
   }
 }

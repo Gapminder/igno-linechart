@@ -23,8 +23,8 @@ function getUrlParams(search = window.location.search) {
 }
 
 function setUrlParams(kv){
-  let v = d3.values(kv)
-  window.location.search = d3.keys(kv).map((k,i) => k + "=" + v[i]).join("&")
+  let v = Object.values(kv)
+  window.location.search = Object.keys(kv).map((k,i) => k + "=" + v[i]).join("&")
   
 }
 
@@ -87,7 +87,7 @@ Promise.all(fetch_concept_props.concat(fetch_instructions)).then(result => {
   
 
   let params = getUrlParams();
-  let paramsEmpty = d3.keys(params).length == 0;
+  let paramsEmpty = Object.keys(params).length == 0;
   DOM.nav.classed("invisible", !paramsEmpty);
   DOM.backButton.classed("invisible", paramsEmpty);
   
