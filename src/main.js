@@ -1,5 +1,6 @@
 import * as d3 from "d3";
 import makeLinechart from "./linechart.js";
+import {savePng, saveSvg} from "./download-utils.js"
 
 window.d3 = d3;
 window.saveSvgAsPng = saveSvgAsPng;
@@ -9,6 +10,7 @@ const INSTRUCTIONS_GRAPHS_SHEET = "graph_list";
 const INSTRUCTIONS_OPTIONS_SHEET = "options";
 
 function googleSheetLink(key, sheet){
+  if(key.includes("google.com")) key = key.split("/d/")[1].split("/")[0];
   return `https://docs.google.com/spreadsheets/d/${key}/gviz/tq?tqx=out:csv&sheet=${sheet}`;
 }
 
@@ -23,9 +25,7 @@ function getUrlParams(search = window.location.search) {
 }
 
 function setUrlParams(kv){
-  let v = Object.values(kv)
-  window.location.search = Object.keys(kv).map((k,i) => k + "=" + v[i]).join("&")
-  
+  window.location.search = Object.entries(kv).map(([k,v]) => k + "=" + v).join("&");
 }
 
 // fetch instructions
@@ -34,10 +34,10 @@ let options = {};
 
 const fetch_instructions = [
   d3.csv(googleSheetLink(INSTRUCTIONS_KEY, INSTRUCTIONS_GRAPHS_SHEET))
-    .then(result => graphs = result)
+    .then(result => graphs = result.filter(f => f.id))
     .catch(error => console.error(error)),
   d3.csv(googleSheetLink(INSTRUCTIONS_KEY, INSTRUCTIONS_OPTIONS_SHEET))
-    .then(result => result.forEach(kv => options[kv.key] = kv.value))
+    .then(result => result.forEach( ({key, value}) => options[key] = value))
     .catch(error => console.error(error)),
 ]
 
@@ -45,20 +45,37 @@ const fetch_instructions = [
 const fetch_concept_props = [];
 
 const data_sources = {
-  "SG-develop": {dataset: "SG-develop"},
-  "fasttrack": {dataset: "fasttrack"},
-  "wdi-master": {dataset: "wdi-master"}
+  "SG-develop": {dataset: "SG-develop", cprops: ["name", "name_short", "format"]},
+  "fasttrack": {dataset: "fasttrack", cprops: ["name", "name_short", "format"]},
+  "wdi-master": {dataset: "wdi-master", cprops: ["name"]},
+  "google-spreadsheet": {}
 }
 
-Object.keys(data_sources).map(m => {
-  const v = data_sources[m];
-  v.reader = DDFServiceReader.getReader();
-  v.reader.init({service: 'https://big-waffle.gapminder.org', name: v.dataset});
-  v.conceptPromise = v.reader
-    .read({select: {key: ["concept"], value: ["name", "name_short", "format"]}, from: "concepts"})
-    .then(result => v.concepts = result)
-    .catch(error => console.error(error));
-  fetch_concept_props.push(v.conceptPromise);
+Object.entries(data_sources).map(([k, v]) => {
+  if(k === "google-spreadsheet") {
+    v.reader = {
+      read: function(path) {
+        const [sheet, link] = path.split(" from ");
+        return d3.csv(googleSheetLink(link, sheet)).catch(error => console.error(error))
+          .then(data => {
+            data.forEach(d => {
+              d["y"] = +d[data.columns[1]];
+              d["time"] = new Date(d[data.columns[0]])
+            });
+            return data;
+          });
+      }
+    }
+    v.concepts = {};
+  } else {
+    v.reader = DDFServiceReader.getReader();
+    v.reader.init({service: 'https://big-waffle.gapminder.org', name: v.dataset});
+    v.conceptPromise = v.reader
+      .read({select: {key: ["concept"], value: v.cprops}, from: "concepts"})
+      .then(result => v.concepts = result)
+      .catch(error => console.error(error));
+    fetch_concept_props.push(v.conceptPromise);
+  }
 })
 
 
@@ -82,7 +99,9 @@ Promise.all(fetch_concept_props.concat(fetch_instructions)).then(result => {
   
   
   graphs.forEach(graph => {
-    DOM.graphs.append("div").append("a").text(graph.id + ": " + graph.title).on("click", ()=>{setUrlParams({graph: graph.id})});
+    DOM.graphs.append("div").append("a")
+      .text(graph.id + ": " + graph.title)
+      .on("click", ()=>{setUrlParams({graph: graph.id})});
   })
   
 
@@ -109,16 +128,13 @@ Promise.all(fetch_concept_props.concat(fetch_instructions)).then(result => {
       
       if (graph) {
         makeLinechart({view: DOM.render, graph, data_sources, options})
-          .then((svg)=>{
-          
-            
-          
+          .then((view)=>{
             if(format == "png") {
-              savePng(svg, graph.id + " - " + graph.title + ".png")
-                .then(()=>svg.remove());
+              savePng(view.select("svg"), graph.id + " - " + graph.title + ".png")
+                .then(()=>view.remove());
             } else if (format == "svg") {
-              saveSvg(svg, graph.id + " - " + graph.title + ".svg")
-                .then(()=>svg.remove());
+              saveSvg(view.select("svg"), graph.id + " - " + graph.title + ".svg")
+                .then(()=>view.remove());
             }
           });
       } else {
@@ -131,79 +147,9 @@ Promise.all(fetch_concept_props.concat(fetch_instructions)).then(result => {
   
   
   
-  async function savePng(view, name){
-    return saveSvgAsPng(view.node(), name, {scale: 2});
-  }
+
   
   
-  function saveSvg(view, name) {
-    
-    var ContainerElements = ["svg","g","defs","marker"];
-    var RelevantStyles = {"rect":["fill","stroke","stroke-width"],"path":["fill","stroke","stroke-width"],"marker":["fill","stroke","stroke-width"],"circle":["fill","stroke","stroke-width"],"line":["stroke","stroke-width"],"text":["fill","font-size","text-anchor","visibility","font-family"],"polygon":["stroke","fill"]};
-
-
-    function read_Element(ParentNode, OrigData){
-        var Children = ParentNode.childNodes;
-        var OrigChildDat = OrigData.childNodes;     
-
-        for (var cd = 0; cd < Children.length; cd++){
-            var Child = Children[cd];
-
-            var TagName = Child.tagName;
-            if (ContainerElements.indexOf(TagName) != -1){
-                read_Element(Child, OrigChildDat[cd])
-            } else if (TagName in RelevantStyles){
-                var StyleDef = window.getComputedStyle(OrigChildDat[cd]);
-
-                var StyleString = "";
-                for (var st = 0; st < RelevantStyles[TagName].length; st++){
-                    StyleString += RelevantStyles[TagName][st] + ":" + StyleDef.getPropertyValue(RelevantStyles[TagName][st]) + "; ";
-                }
-
-                Child.setAttribute("style",StyleString);
-            }
-        }
-
-    }
-
-    function export_StyledSVG(SVGElem, name){
-
-
-        var oDOM = SVGElem.cloneNode(true)
-        read_Element(oDOM, SVGElem)
-
-        var data = new XMLSerializer().serializeToString(oDOM);
-        var svg = new Blob([data], { type: "image/svg+xml;charset=utf-8" });
-        var url = URL.createObjectURL(svg);
-
-        var link = document.createElement("a");
-        link.setAttribute("target","_blank");
-        var Text = document.createTextNode("Export");
-        link.appendChild(Text);
-        link.download = name;
-        link.href=url;
-
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    }
-    
-    export_StyledSVG(view.node(), name);
-    return Promise.resolve();
-    
-//    view.node().setAttribute("xmlns", "http://www.w3.org/2000/svg");
-//    var svgData = view.node().outerHTML;
-//    var preface = '<?xml version="1.0" standalone="no"?>\r\n';
-//    var svgBlob = new Blob([preface, svgData], {type:"image/svg+xml;charset=utf-8"});
-//    var svgUrl = URL.createObjectURL(svgBlob);
-//    var downloadLink = document.createElement("a");
-//    downloadLink.href = svgUrl;
-//    downloadLink.download = name;
-//    document.body.appendChild(downloadLink);
-//    downloadLink.click();
-//    document.body.removeChild(downloadLink);
-//    return Promise.resolve();
-  }
   
   
 })

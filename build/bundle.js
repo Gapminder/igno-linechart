@@ -20379,6 +20379,7 @@
         suffix = "%";
       }
       
+      if(multiplier === "thousands") d=d/1e3;
       if(multiplier === "millions") d=d/1e6;
       if(multiplier === "billions") d=d/1e9;
 
@@ -20386,9 +20387,91 @@
     }
   }
 
+  async function savePng(view, name) {
+    return saveSvgAsPng(view.node(), name, { scale: 2 });
+  }
+
+  function saveSvg(view, name) {
+
+    var ContainerElements = ["svg", "g", "defs", "marker"];
+    var RelevantStyles = { "rect": ["fill", "stroke", "stroke-width"], "path": ["fill", "stroke", "stroke-width"], "marker": ["fill", "stroke", "stroke-width"], "circle": ["fill", "stroke", "stroke-width"], "line": ["stroke", "stroke-width"], "text": ["fill", "font-size", "text-anchor", "visibility", "font-family"], "polygon": ["stroke", "fill"] };
+
+
+    function read_Element(ParentNode, OrigData) {
+      var Children = ParentNode.childNodes;
+      var OrigChildDat = OrigData.childNodes;
+
+      for (var cd = 0; cd < Children.length; cd++) {
+        var Child = Children[cd];
+
+        var TagName = Child.tagName;
+        if (ContainerElements.indexOf(TagName) != -1) {
+          read_Element(Child, OrigChildDat[cd]);
+        } else if (TagName in RelevantStyles) {
+          var StyleDef = window.getComputedStyle(OrigChildDat[cd]);
+
+          var StyleString = "";
+          for (var st = 0; st < RelevantStyles[TagName].length; st++) {
+            StyleString += RelevantStyles[TagName][st] + ":" + StyleDef.getPropertyValue(RelevantStyles[TagName][st]) + "; ";
+          }
+
+          Child.setAttribute("style", StyleString);
+        }
+      }
+
+    }
+
+    function export_StyledSVG(SVGElem, name) {
+
+
+      var oDOM = SVGElem.cloneNode(true);
+      read_Element(oDOM, SVGElem);
+
+      var data = new XMLSerializer().serializeToString(oDOM);
+      var svg = new Blob([data], { type: "image/svg+xml;charset=utf-8" });
+      var url = URL.createObjectURL(svg);
+
+      var link = document.createElement("a");
+      link.setAttribute("target", "_blank");
+      var Text = document.createTextNode("Export");
+      link.appendChild(Text);
+      link.download = name;
+      link.href = url;
+
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    export_StyledSVG(view.node(), name);
+    return Promise.resolve();
+
+    //    view.node().setAttribute("xmlns", "http://www.w3.org/2000/svg");
+    //    var svgData = view.node().outerHTML;
+    //    var preface = '<?xml version="1.0" standalone="no"?>\r\n';
+    //    var svgBlob = new Blob([preface, svgData], {type:"image/svg+xml;charset=utf-8"});
+    //    var svgUrl = URL.createObjectURL(svgBlob);
+    //    var downloadLink = document.createElement("a");
+    //    downloadLink.href = svgUrl;
+    //    downloadLink.download = name;
+    //    document.body.appendChild(downloadLink);
+    //    downloadLink.click();
+    //    document.body.removeChild(downloadLink);
+    //    return Promise.resolve();
+  }
+
   function makeLinechart({view, graph={}, data_sources={}, geo="", template="",  options}){
 
-    const svg = view.append("svg").attr("class", "linechart");
+    const render = view.append("div");
+    const svg = render.append("svg").attr("class", "linechart");
+    render.append("div")
+      .attr("class", "dl-all")
+      .text("Download as PNG")
+      .on("click", () => savePng(svg, graph.id + " - " + graph.title + ".png"));
+    render.append("div")
+      .attr("class", "dl-all")
+      .text("Download as SVG")
+      .on("click", () => saveSvg(svg, graph.id + " - " + graph.title + ".svg"));
 
     const indicator_id = graph.indicator;
     const dataset = graph.dataset;
@@ -20401,11 +20484,12 @@
     
     return new Promise((resolve, reject) => {
     
-      if(!data_sources[dataset]) reject(`Dataset ${dataset} is not listed`);
-      if(!indicator_id) reject("Indicator not set");
+      if(!dataset) reject(`Dataset of graph ${graph.id} is not specified`);
+      if(!data_sources[dataset] && !dataset.includes("google")) reject(`Dataset ${dataset} is not listed`);
 
-      data_sources[dataset].reader
-        .read({
+      const readerPromise = dataset.includes("google")
+        ? data_sources["google-spreadsheet"].reader.read(dataset)
+        : data_sources[dataset].reader.read({
           select: {
             key: ["geo", "time"], 
             value: [indicator_id]
@@ -20415,23 +20499,20 @@
             time: time_interval
           }, 
           from: "datapoints"
-        })
-        .then(data => {
-          linechart({
-            data, 
-            svg, 
-            conceptProps: data_sources[dataset].concepts.find(c => c.concept == indicator_id),
-            config: graph,
-            options
-          });
-          resolve(svg);
-        })
-        .catch(error => console.error(error));
+        });
 
-    
+      readerPromise
+        .then(data => {  
+            linechart({
+              data, 
+              svg, 
+              config: graph,
+              options
+            });
+            resolve(render);
+          })
+        .catch(error => console.error(error));  
     });
-
-    
   }
 
   /*
@@ -20441,12 +20522,11 @@
       {...}
     ], 
     svg = d3-selected SVG DOM element. like so: d3.select("svg"), 
-    conceptProps = {concept: "lex", name: "Life expectancy"},
     config = {}
     options = {"chart title": "on"}
   }
   */
-  function linechart({data = [], svg, conceptProps = {}, config = {}, options = {}}){
+  function linechart({data = [], svg, config = {}, options = {}}){
     
     config = Object.assign({
       
@@ -20469,6 +20549,7 @@
     }, config);
     
     config.reference_values = JSON.parse(config.reference_values || "[]");
+    config.indicator = config.indicator || "y";
     
     const MARGIN = {
       top: parseInt(options["margin top"]) || 20, 
@@ -20490,7 +20571,7 @@
       
     } else {
       
-      const PERCENT = conceptProps.format === "percent";
+      const PERCENT = config.format === "percent";
       let formatter = format(PERCENT? "PERCENT" : "", config.multiplier);
       
       svg.append("svg:defs").append("svg:marker")
@@ -20520,20 +20601,21 @@
         .attr("transform", "translate(" + MARGIN.left + "," + MARGIN.top + ")");
       
       if(options["chart title"] === "on") g.append("text")
-        .attr("dy","-30px")
-        .attr("dx", -MARGIN.left + "px")
+        .attr("y","-30px")
+        .attr("x", -MARGIN.left + "px")
         .attr("class","title")
         .text(config.title);
       
       if(options["source text"] === "on") g.append("text")
-        .attr("dy", HEIGHT + MARGIN.bottom - 10 + "px")
-        .attr("dx", -MARGIN.left + "px")
+        .attr("y", HEIGHT + MARGIN.bottom - 10 + "px")
+        .attr("x", -MARGIN.left + "px")
         .attr("class","source")
         .text(config.source);
       
       //adds 10% of x axis domain from start and end
-      function domainTimeBump(domain){
-        const bump = parseInt(d3.timeYear.count(domain[0], domain[1]) / 10);
+      function domainTimeBump(domain, timeBump){
+        if (!timeBump) return domain;
+        const bump = parseInt(d3.timeYear.count(domain[0], domain[1]) / timeBump);
         return [d3.timeYear.offset(domain[0], -bump), d3.timeYear.offset(domain[1], bump)];
       }
     
@@ -20543,13 +20625,14 @@
         return [(domain[0] - bump), (domain[1] + bump)];
       }
       
+      let dataTimeLimits = d3.extent(data.map(m => m.time));
       var xScale = d3.scaleTime()
-        .domain(domainTimeBump(d3.extent(data.map(m => m.time))))
+        .domain(domainTimeBump(dataTimeLimits, +options["time bump"]))
         .range([0, WIDTH]);
       
       let domain = [];
       if (config.y_domain) domain = JSON.parse(config.y_domain);
-      else if (PERCENT) domain = [0,100];
+      //else if (PERCENT) domain = [0,100];
       else domain = domainLinearBump(d3.extent(data.map(m => m[config.indicator])));
         
       var yScale = d3.scaleLinear()
@@ -20560,22 +20643,52 @@
         .x(function(d) { return xScale(d.time); }) 
         .y(function(d) { return yScale(d[config.indicator]); }) 
         .curve(d3.curveLinear);
+
+      var area = d3.area()
+        .x(function(d) { return xScale(d.time); }) 
+        .y1(function(d) { return yScale(d[config.indicator]); }) 
+        .y0(function(d) { return yScale(yScale.domain()[0]); }) 
+        .curve(d3.curveLinear);
+
+      g.append("path")
+        .datum(data) 
+        .attr("class", "area") 
+        .attr("d", area)
+        .style("fill", options["area color"]);
+
+      g.append("path")
+        .datum(data) 
+        .attr('marker-start', (d) => options.dot === "on" ? "url(#cicle)" : null)//attach the arrow from defs
+        .attr('marker-end', (d) => options.dot === "on" ? "url(#arrow)" : null)//attach the arrow from defs
+        .attr("class", "line") 
+        .attr("stroke-linecap", "round")
+        .attr("stroke-linejoin", "round")
+        .attr("d", line)
+        .style("stroke", options["line color"]);
       
       g.append("g")
         .attr("class", "x axis")
         .attr("transform", "translate(0," + HEIGHT + ")")
-        .call(d3.axisBottom(xScale).ticks(5).tickSizeOuter(0));
-      
-      g.append("g")
+        .call(
+          d3.axisBottom(xScale)
+            .ticks(3)
+            .tickSizeOuter(0)
+            .tickValues([dataTimeLimits[0], d3.interpolateDate(dataTimeLimits[0], dataTimeLimits[1])(0.5), dataTimeLimits[1]])
+            .tickFormat(d3.timeFormat("%Y"))
+        )
+        .selectAll("text")
+          .attr("dy", null)
+          .attr("y", options["x axis ticks dy"] + "px")
+          .each(function(d, i){
+            const view = d3.select(this);
+            if (i===0) view.attr("text-anchor", "start");
+            if (i===2) view.attr("text-anchor", "end");
+
+          });
+
+      if(options["y axis"] === "on") g.append("g")
         .attr("class", "y axis")
         .call(d3.axisLeft(yScale).tickFormat(formatter).ticks(5).tickSizeOuter(0)); 
-      
-      g.append("path")
-        .datum(data) 
-        .attr('marker-start', (d) => "url(#cicle)")//attach the arrow from defs
-        .attr('marker-end', (d) => "url(#arrow)")//attach the arrow from defs
-        .attr("class", "line") 
-        .attr("d", line);
       
       
       function addReference({time, value, text="", dx=0, dy=0, cssClass="reference"}) {
@@ -20592,10 +20705,8 @@
         g.append("text")
           .attr("class", "option " + cssClass)
           .attr("text-anchor", "middle")
-          .attr("dy", -20 + parseInt(dy) + "px")
-          .attr("dx", dx + "px")
-          .attr("x", x)
-          .attr("y", y)
+          .attr("x", x + dx + "px")
+          .attr("y", y - 20 + parseInt(dy) + "px")
           .text(text);
       }
       
@@ -20603,40 +20714,34 @@
       
       const endTime = d3.max(data.map(m => m.time));
       const endValue = data.find(f => f.time - endTime == 0)[config.indicator];
-      const upperHalfEndValue = yScale(endValue) < HEIGHT/2;
+      const upperHalfEndValue = yScale(endValue) < HEIGHT/2 && options.area === "off";
       
       g.append("text")
         .attr("class", "endvalue")
         .attr("text-anchor", "start")
-        .attr("dy", config.endvalue_dy || 0 + "px")
-        .attr("dx", config.endvalue_dx || 0 + "px")
-        .attr("x", xScale(endTime))
-        .attr("y", yScale(endValue) + (upperHalfEndValue? 50 : -30) + "px")
+        .attr("x", xScale(endTime) + config.endvalue_dx || 0 + "px")
+        .attr("y", yScale(endValue) + (upperHalfEndValue? 50 : -30) + config.endvalue_dy || 0 + "px")
         .style("visibility", config.endvalue=="off" ? "hidden" : null)
         .text(config.endvalue || formatter(endValue));
       
       const startTime = d3.min(data.map(m => m.time));
       const startValue = data.find(f => f.time - startTime == 0)[config.indicator];
-      const upperHalfStartValue = yScale(startValue) < HEIGHT/2;
+      const upperHalfStartValue = yScale(startValue) < HEIGHT/2 && options.area === "off";
       
       g.append("text")
         .attr("class", "startvalue")
         .attr("text-anchor", "start")
-        .attr("dy", config.startvalue_dy || 0 + "px")
-        .attr("dx", config.startvalue_dx || 0 + "px")
-        .attr("x", xScale(startTime))
-        .attr("y", yScale(startValue) + (upperHalfStartValue? 50 : -30) + "px")
+        .attr("x", xScale(startTime) + config.startvalue_dx || 0 + "px")
+        .attr("y", yScale(startValue) + (upperHalfStartValue? 50 : -30) + config.startvalue_dy || 0 + "px")
         .style("visibility", config.startvalue=="off" ? "hidden" : null)
         .text(config.startvalue || formatter(startValue));
       
       g.append("text")
         .attr("class", "multiplier")
         .attr("text-anchor", "start")
-        .attr("dy", "10px")
-        .attr("dx", "10px")
-        .attr("x", 0)
-        .attr("y", 0)
-        .text(config.multiplier);
+        .attr("x", -MARGIN.left + "px")
+        .attr("y", "10px")
+        .text((config.subtitle || "") + (config.subtitle && config.multiplier && ", " || "") + (config.multiplier || ""));
     }
     
     
@@ -20651,6 +20756,7 @@
   const INSTRUCTIONS_OPTIONS_SHEET = "options";
 
   function googleSheetLink(key, sheet){
+    if(key.includes("google.com")) key = key.split("/d/")[1].split("/")[0];
     return `https://docs.google.com/spreadsheets/d/${key}/gviz/tq?tqx=out:csv&sheet=${sheet}`;
   }
 
@@ -20665,9 +20771,7 @@
   }
 
   function setUrlParams(kv){
-    let v = Object.values(kv);
-    window.location.search = Object.keys(kv).map((k,i) => k + "=" + v[i]).join("&");
-    
+    window.location.search = Object.entries(kv).map(([k,v]) => k + "=" + v).join("&");
   }
 
   // fetch instructions
@@ -20676,10 +20780,10 @@
 
   const fetch_instructions = [
     csv(googleSheetLink(INSTRUCTIONS_KEY, INSTRUCTIONS_GRAPHS_SHEET))
-      .then(result => graphs = result)
+      .then(result => graphs = result.filter(f => f.id))
       .catch(error => console.error(error)),
     csv(googleSheetLink(INSTRUCTIONS_KEY, INSTRUCTIONS_OPTIONS_SHEET))
-      .then(result => result.forEach(kv => options[kv.key] = kv.value))
+      .then(result => result.forEach( ({key, value}) => options[key] = value))
       .catch(error => console.error(error)),
   ];
 
@@ -20687,20 +20791,37 @@
   const fetch_concept_props = [];
 
   const data_sources = {
-    "SG-develop": {dataset: "SG-develop"},
-    "fasttrack": {dataset: "fasttrack"},
-    "wdi-master": {dataset: "wdi-master"}
+    "SG-develop": {dataset: "SG-develop", cprops: ["name", "name_short", "format"]},
+    "fasttrack": {dataset: "fasttrack", cprops: ["name", "name_short", "format"]},
+    "wdi-master": {dataset: "wdi-master", cprops: ["name"]},
+    "google-spreadsheet": {}
   };
 
-  Object.keys(data_sources).map(m => {
-    const v = data_sources[m];
-    v.reader = DDFServiceReader.getReader();
-    v.reader.init({service: 'https://big-waffle.gapminder.org', name: v.dataset});
-    v.conceptPromise = v.reader
-      .read({select: {key: ["concept"], value: ["name", "name_short", "format"]}, from: "concepts"})
-      .then(result => v.concepts = result)
-      .catch(error => console.error(error));
-    fetch_concept_props.push(v.conceptPromise);
+  Object.entries(data_sources).map(([k, v]) => {
+    if(k === "google-spreadsheet") {
+      v.reader = {
+        read: function(path) {
+          const [sheet, link] = path.split(" from ");
+          return csv(googleSheetLink(link, sheet)).catch(error => console.error(error))
+            .then(data => {
+              data.forEach(d => {
+                d["y"] = +d[data.columns[1]];
+                d["time"] = new Date(d[data.columns[0]]);
+              });
+              return data;
+            });
+        }
+      };
+      v.concepts = {};
+    } else {
+      v.reader = DDFServiceReader.getReader();
+      v.reader.init({service: 'https://big-waffle.gapminder.org', name: v.dataset});
+      v.conceptPromise = v.reader
+        .read({select: {key: ["concept"], value: v.cprops}, from: "concepts"})
+        .then(result => v.concepts = result)
+        .catch(error => console.error(error));
+      fetch_concept_props.push(v.conceptPromise);
+    }
   });
 
 
@@ -20724,7 +20845,9 @@
     
     
     graphs.forEach(graph => {
-      DOM.graphs.append("div").append("a").text(graph.id + ": " + graph.title).on("click", ()=>{setUrlParams({graph: graph.id});});
+      DOM.graphs.append("div").append("a")
+        .text(graph.id + ": " + graph.title)
+        .on("click", ()=>{setUrlParams({graph: graph.id});});
     });
     
 
@@ -20750,16 +20873,13 @@
         
         if (graph) {
           makeLinechart({view: DOM.render, graph, data_sources, options})
-            .then((svg)=>{
-            
-              
-            
+            .then((view)=>{
               if(format == "png") {
-                savePng(svg, graph.id + " - " + graph.title + ".png")
-                  .then(()=>svg.remove());
+                savePng(view.select("svg"), graph.id + " - " + graph.title + ".png")
+                  .then(()=>view.remove());
               } else if (format == "svg") {
-                saveSvg(svg, graph.id + " - " + graph.title + ".svg")
-                  .then(()=>svg.remove());
+                saveSvg(view.select("svg"), graph.id + " - " + graph.title + ".svg")
+                  .then(()=>view.remove());
               }
             });
         } else {
@@ -20772,79 +20892,9 @@
     
     
     
-    async function savePng(view, name){
-      return saveSvgAsPng(view.node(), name, {scale: 2});
-    }
+
     
     
-    function saveSvg(view, name) {
-      
-      var ContainerElements = ["svg","g","defs","marker"];
-      var RelevantStyles = {"rect":["fill","stroke","stroke-width"],"path":["fill","stroke","stroke-width"],"marker":["fill","stroke","stroke-width"],"circle":["fill","stroke","stroke-width"],"line":["stroke","stroke-width"],"text":["fill","font-size","text-anchor","visibility","font-family"],"polygon":["stroke","fill"]};
-
-
-      function read_Element(ParentNode, OrigData){
-          var Children = ParentNode.childNodes;
-          var OrigChildDat = OrigData.childNodes;     
-
-          for (var cd = 0; cd < Children.length; cd++){
-              var Child = Children[cd];
-
-              var TagName = Child.tagName;
-              if (ContainerElements.indexOf(TagName) != -1){
-                  read_Element(Child, OrigChildDat[cd]);
-              } else if (TagName in RelevantStyles){
-                  var StyleDef = window.getComputedStyle(OrigChildDat[cd]);
-
-                  var StyleString = "";
-                  for (var st = 0; st < RelevantStyles[TagName].length; st++){
-                      StyleString += RelevantStyles[TagName][st] + ":" + StyleDef.getPropertyValue(RelevantStyles[TagName][st]) + "; ";
-                  }
-
-                  Child.setAttribute("style",StyleString);
-              }
-          }
-
-      }
-
-      function export_StyledSVG(SVGElem, name){
-
-
-          var oDOM = SVGElem.cloneNode(true);
-          read_Element(oDOM, SVGElem);
-
-          var data = new XMLSerializer().serializeToString(oDOM);
-          var svg = new Blob([data], { type: "image/svg+xml;charset=utf-8" });
-          var url = URL.createObjectURL(svg);
-
-          var link = document.createElement("a");
-          link.setAttribute("target","_blank");
-          var Text = document.createTextNode("Export");
-          link.appendChild(Text);
-          link.download = name;
-          link.href=url;
-
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-      }
-      
-      export_StyledSVG(view.node(), name);
-      return Promise.resolve();
-      
-  //    view.node().setAttribute("xmlns", "http://www.w3.org/2000/svg");
-  //    var svgData = view.node().outerHTML;
-  //    var preface = '<?xml version="1.0" standalone="no"?>\r\n';
-  //    var svgBlob = new Blob([preface, svgData], {type:"image/svg+xml;charset=utf-8"});
-  //    var svgUrl = URL.createObjectURL(svgBlob);
-  //    var downloadLink = document.createElement("a");
-  //    downloadLink.href = svgUrl;
-  //    downloadLink.download = name;
-  //    document.body.appendChild(downloadLink);
-  //    downloadLink.click();
-  //    document.body.removeChild(downloadLink);
-  //    return Promise.resolve();
-    }
     
     
   });

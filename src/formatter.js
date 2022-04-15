@@ -13,6 +13,7 @@ export default function format(style, multiplier) {
       suffix = "%"
     }
     
+    if(multiplier === "thousands") d=d/1e3;
     if(multiplier === "millions") d=d/1e6;
     if(multiplier === "billions") d=d/1e9;
 

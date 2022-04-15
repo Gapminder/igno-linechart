@@ -1,5 +1,6 @@
 :root {
   --accent-color: #59c364;
+  --accent-color2: #f4634b;
   --black-color: #282828;
   --grey-color: #717171;
   --wrong-color: #ee3c65;
@@ -17,53 +18,53 @@
 
 
 @font-face {
-  font-family: Rubik-MediumItalic.ttf
-  src: url("assets/fonts/Rubik-MediumItalic.ttf") format("truetype")
+  font-family: "Rubik-MediumItalic";
+  src: url("assets/fonts/Rubik-MediumItalic.ttf") format("truetype");
 }
 
 @font-face {
-  font-family: Rubik-LightItalic.ttf
-  src: url("assets/fonts/Rubik-LightItalic.ttf") format("truetype")
+  font-family: "Rubik-LightItalic";
+  src: url("assets/fonts/Rubik-LightItalic.ttf") format("truetype");
 }
 
 @font-face {
-  font-family: Rubik-Italic.ttf
-  src: url("assets/fonts/Rubik-Italic.ttf") format("truetype")
+  font-family: "Rubik-Italic";
+  src: url("assets/fonts/Rubik-Italic.ttf") format("truetype");
 }
 
 @font-face {
-  font-family: Rubik-Regular.ttf
-  src: url("assets/fonts/Rubik-Regular.ttf") format("truetype")
+  font-family: "Rubik-Regular";
+  src: url("assets/fonts/Rubik-Regular.ttf") format("truetype");
 }
 
 @font-face {
-  font-family: Rubik-Black.ttf
-  src: url("assets/fonts/Rubik-Black.ttf") format("truetype")
+  font-family: "Rubik-Black";
+  src: url("assets/fonts/Rubik-Black.ttf") format("truetype");
 }
 
 @font-face {
-  font-family: Rubik-Light.ttf
-  src: url("assets/fonts/Rubik-Light.ttf") format("truetype")
+  font-family: "Rubik-Light";
+  src: url("./assets/fonts/Rubik-Light.ttf") format("truetype");
 }
 
 @font-face {
-  font-family: Rubik-Medium.ttf
-  src: url("assets/fonts/Rubik-Medium.ttf") format("truetype")
+  font-family: "Rubik-Medium";
+  src: url("assets/fonts/Rubik-Medium.ttf") format("truetype");
 }
 
 @font-face {
-  font-family: Rubik-Bold.ttf
-  src: url("assets/fonts/Rubik-Bold.ttf") format("truetype")
+  font-family: "Rubik-Bold";
+  src: url("assets/fonts/Rubik-Bold.ttf") format("truetype");
 }
 
 @font-face {
-  font-family: Rubik-BlackItalic.ttf
-  src: url("assets/fonts/Rubik-BlackItalic.ttf") format("truetype")
+  font-family: "Rubik-BlackItalic";
+  src: url("assets/fonts/Rubik-BlackItalic.ttf") format("truetype");
 }
 
 @font-face {
-  font-family: Rubik-BoldItalic.ttf
-  src: url("assets/fonts/Rubik-BoldItalic.ttf") format("truetype")
+  font-family: "Rubik-BoldItalic";
+  src: url("assets/fonts/Rubik-BoldItalic.ttf") format("truetype");
 }
 
 
@@ -111,22 +112,29 @@ a:hover {
   margin-bottom: 10px;
 }
 
-.nav .dl-all {
+.dl-all {
   padding: 5px;
   border: 1px solid black;
   display: inline-block;
   border-radius: 2px;
   background-color: aquamarine;
   margin-right: 10px;
+  cursor: pointer;
 }
 
 
 
-
+.linechart {
+  display: block;
+}
 .linechart .line{
   fill: none;
   stroke: var(--accent-color);
   stroke-width: 8px;
+}
+.linechart .area{
+  fill: var(--accent-color2);
+  stroke: none; 
 }
 .linechart marker#cicle, marker#arrow {
   fill: var(--accent-color);
@@ -136,14 +144,17 @@ a:hover {
 svg.linechart text{font-family: "Rubik-Light"}
 
 
-.linechart .title,
-.linechart .source {
+.linechart .title {
   font-size: 20pt;
-  fill: var(--grey-color)
+  fill: var(--black-color)
+}
+.linechart .source {
+  font-size: 14pt;
+  fill: var(--black-color)
 }
 .linechart .axis text {
   font-size: 20pt;
-  fill: var(--grey-color);
+  fill: var(--black-color);
 }
 
 .linechart .axis path,
@@ -161,11 +172,11 @@ svg.linechart text{font-family: "Rubik-Light"}
   fill: var(--black-color);
 }
 
-.linechart text.startvalue {
-  text-anchor: middle;
-}
 .linechart text.endvalue {
-  fill: var(--black-color);
+  text-anchor: end;
+}
+.linechart text.startvalue {
+  text-anchor: start;
 }
 
 .linechart text.reference, 
@@ -175,6 +186,6 @@ svg.linechart text{font-family: "Rubik-Light"}
 }
 
 .linechart text.multiplier{
-  font-size: 20pt;
-  fill: var(--grey-color);
+  font-size: 14pt;
+  fill: var(--black-color);
 }
