@@ -1,5 +1,5 @@
 
-(function(l, r) { if (!l || l.getElementById('livereloadscript')) return; r = l.createElement('script'); r.async = 1; r.src = '//' + (self.location.host || 'localhost').split(':')[0] + ':35729/livereload.js?snipver=1'; r.id = 'livereloadscript'; l.getElementsByTagName('head')[0].appendChild(r) })(self.document);
+(function(l, r) { if (!l || l.getElementById('livereloadscript')) return; r = l.createElement('script'); r.async = 1; r.src = '//' + (self.location.host || 'localhost').split(':')[0] + ':35730/livereload.js?snipver=1'; r.id = 'livereloadscript'; l.getElementsByTagName('head')[0].appendChild(r) })(self.document);
 (function (factory) {
   typeof define === 'function' && define.amd ? define(factory) :
   factory();
@@ -20622,7 +20622,7 @@
       //adds 10% of y axis domain from start and end
       function domainLinearBump(domain){
         const bump = Math.abs(domain[0] - domain[1]) / 10;
-        return [(domain[0] - bump), (domain[1] + bump)];
+        return [domain[0], (domain[1] + bump)];
       }
       
       let dataTimeLimits = d3.extent(data.map(m => m.time));
@@ -20639,7 +20639,35 @@
         .domain(domain)
         .range([HEIGHT, 0]);
       
-      var line = d3.line()
+      const tickValues = config.x_labels
+        ? config.x_labels.split(",").map(m => new Date(m))
+        : [dataTimeLimits[0], d3.interpolateDate(dataTimeLimits[0], dataTimeLimits[1])(0.5), dataTimeLimits[1]];
+
+      g.append("g")
+        .attr("class", "x axis")
+        .attr("transform", "translate(0," + HEIGHT + ")")
+        .call(
+          d3.axisBottom(xScale)
+            .ticks(3)
+            .tickSizeOuter(0)
+            .tickValues(tickValues)
+            .tickFormat(d3.timeFormat("%Y"))
+        )
+        .selectAll("text")
+          .attr("dy", null)
+          .attr("y", options["x axis ticks dy"] + "px")
+          .each(function(d, i){
+            const view = d3.select(this);
+            if (i===0) view.attr("text-anchor", "start");
+            if (i===2) view.attr("text-anchor", "end");
+
+          });
+
+      if(options["y axis"] === "on") g.append("g")
+        .attr("class", "y axis")
+        .call(d3.axisLeft(yScale).tickFormat(formatter).ticks(5).tickSizeOuter(0)); 
+      
+        var line = d3.line()
         .x(function(d) { return xScale(d.time); }) 
         .y(function(d) { return yScale(d[config.indicator]); }) 
         .curve(d3.curveLinear);
@@ -20665,31 +20693,6 @@
         .attr("stroke-linejoin", "round")
         .attr("d", line)
         .style("stroke", options["line color"]);
-      
-      g.append("g")
-        .attr("class", "x axis")
-        .attr("transform", "translate(0," + HEIGHT + ")")
-        .call(
-          d3.axisBottom(xScale)
-            .ticks(3)
-            .tickSizeOuter(0)
-            .tickValues([dataTimeLimits[0], d3.interpolateDate(dataTimeLimits[0], dataTimeLimits[1])(0.5), dataTimeLimits[1]])
-            .tickFormat(d3.timeFormat("%Y"))
-        )
-        .selectAll("text")
-          .attr("dy", null)
-          .attr("y", options["x axis ticks dy"] + "px")
-          .each(function(d, i){
-            const view = d3.select(this);
-            if (i===0) view.attr("text-anchor", "start");
-            if (i===2) view.attr("text-anchor", "end");
-
-          });
-
-      if(options["y axis"] === "on") g.append("g")
-        .attr("class", "y axis")
-        .call(d3.axisLeft(yScale).tickFormat(formatter).ticks(5).tickSizeOuter(0)); 
-      
       
       function addReference({time, value, text="", dx=0, dy=0, cssClass="reference"}) {
         
@@ -20719,8 +20722,8 @@
       g.append("text")
         .attr("class", "endvalue")
         .attr("text-anchor", "start")
-        .attr("x", xScale(endTime) + config.endvalue_dx || 0 + "px")
-        .attr("y", yScale(endValue) + (upperHalfEndValue? 50 : -30) + config.endvalue_dy || 0 + "px")
+        .attr("x", xScale(endTime) + (+config.endvalue_dx || 0) + "px")
+        .attr("y", yScale(endValue) + (upperHalfEndValue? 50 : -30) + (+config.endvalue_dy || 0) + "px")
         .style("visibility", config.endvalue=="off" ? "hidden" : null)
         .text(config.endvalue || formatter(endValue));
       
@@ -20731,8 +20734,8 @@
       g.append("text")
         .attr("class", "startvalue")
         .attr("text-anchor", "start")
-        .attr("x", xScale(startTime) + config.startvalue_dx || 0 + "px")
-        .attr("y", yScale(startValue) + (upperHalfStartValue? 50 : -30) + config.startvalue_dy || 0 + "px")
+        .attr("x", xScale(startTime) + (+config.startvalue_dx || 0) + "px")
+        .attr("y", yScale(startValue) + (upperHalfStartValue? 50 : -30) + (+config.startvalue_dy || 0) + "px")
         .style("visibility", config.startvalue=="off" ? "hidden" : null)
         .text(config.startvalue || formatter(startValue));
       

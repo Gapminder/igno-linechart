@@ -93,7 +93,11 @@ a:hover {
 .report {
   position: relative;
 }
-
+#instructions {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+}
 
 
 .back {
