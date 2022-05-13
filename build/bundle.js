@@ -20631,9 +20631,12 @@
         .range([0, WIDTH]);
       
       let domain = [];
-      if (config.y_domain) domain = JSON.parse(config.y_domain);
-      //else if (PERCENT) domain = [0,100];
-      else domain = domainLinearBump(d3.extent(data.map(m => m[config.indicator])));
+      if (config.y_domain)
+        domain = JSON.parse(config.y_domain);
+      else if (PERCENT)
+        domain = [0, domainLinearBump(d3.extent(data.map(m => m[config.indicator])))[1] ];
+      else
+        domain = domainLinearBump(d3.extent(data.map(m => m[config.indicator])));
         
       var yScale = d3.scaleLinear()
         .domain(domain)
