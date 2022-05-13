@@ -200,7 +200,7 @@ export function linechart({data = [], svg, config = {}, options = {}}){
         .each(function(d, i){
           const view = d3.select(this);
           if (i===0) view.attr("text-anchor", "start");
-          if (i===2) view.attr("text-anchor", "end");
+          if (i===tickValues.length - 1) view.attr("text-anchor", "end");
 
         });
 
