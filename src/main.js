@@ -58,11 +58,13 @@ Object.entries(data_sources).map(([k, v]) => {
         const [sheet, link] = path.split(" from ");
         return d3.csv(googleSheetLink(link, sheet)).catch(error => console.error(error))
           .then(data => {
-            data.forEach(d => {
-              d["y"] = +d[data.columns[1]];
-              d["time"] = new Date(d[data.columns[0]])
-            });
-            return data;
+            return data
+              .map(d => {
+                d["y"] = +d[data.columns[1]];
+                d["time"] = new Date(d[data.columns[0]]);
+                return d;
+              })
+              .filter(f => !isNaN(f.time.getTime()) );
           });
       }
     }

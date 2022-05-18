@@ -20671,14 +20671,14 @@
         .call(d3.axisLeft(yScale).tickFormat(formatter).ticks(5).tickSizeOuter(0)); 
       
         var line = d3.line()
-        .x(function(d) { return xScale(d.time); }) 
-        .y(function(d) { return yScale(d[config.indicator]); }) 
+        .x(d => xScale(d.time)) 
+        .y(d => yScale(d[config.indicator])) 
         .curve(d3.curveLinear);
 
       var area = d3.area()
-        .x(function(d) { return xScale(d.time); }) 
-        .y1(function(d) { return yScale(d[config.indicator]); }) 
-        .y0(function(d) { return yScale(yScale.domain()[0]); }) 
+        .x(d => xScale(d.time)) 
+        .y1(d => yScale(d[config.indicator])) 
+        .y0(d => yScale(yScale.domain()[0])) 
         .curve(d3.curveLinear);
 
       g.append("path")
@@ -20810,11 +20810,13 @@
           const [sheet, link] = path.split(" from ");
           return csv(googleSheetLink(link, sheet)).catch(error => console.error(error))
             .then(data => {
-              data.forEach(d => {
-                d["y"] = +d[data.columns[1]];
-                d["time"] = new Date(d[data.columns[0]]);
-              });
-              return data;
+              return data
+                .map(d => {
+                  d["y"] = +d[data.columns[1]];
+                  d["time"] = new Date(d[data.columns[0]]);
+                  return d;
+                })
+                .filter(f => !isNaN(f.time.getTime()) );
             });
         }
       };
