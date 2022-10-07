@@ -1,5 +1,5 @@
 
-(function(l, r) { if (!l || l.getElementById('livereloadscript')) return; r = l.createElement('script'); r.async = 1; r.src = '//' + (self.location.host || 'localhost').split(':')[0] + ':35730/livereload.js?snipver=1'; r.id = 'livereloadscript'; l.getElementsByTagName('head')[0].appendChild(r) })(self.document);
+(function(l, r) { if (!l || l.getElementById('livereloadscript')) return; r = l.createElement('script'); r.async = 1; r.src = '//' + (self.location.host || 'localhost').split(':')[0] + ':35729/livereload.js?snipver=1'; r.id = 'livereloadscript'; l.getElementsByTagName('head')[0].appendChild(r) })(self.document);
 (function (factory) {
   typeof define === 'function' && define.amd ? define(factory) :
   factory();
@@ -20383,7 +20383,11 @@
       if(multiplier === "millions") d=d/1e6;
       if(multiplier === "billions") d=d/1e9;
 
-      return d3.format(".2~s")(d).replace("G","B") + suffix;
+      return d3.formatLocale({
+        decimal: ".",
+        thousands: " ",
+        grouping: [3],
+      }).format(',.2r')(d) + suffix;
     }
   }
 

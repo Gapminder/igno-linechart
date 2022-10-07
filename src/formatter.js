@@ -17,6 +17,10 @@ export default function format(style, multiplier) {
     if(multiplier === "millions") d=d/1e6;
     if(multiplier === "billions") d=d/1e9;
 
-    return d3.format(".2~s")(d).replace("G","B") + suffix;
+    return d3.formatLocale({
+      decimal: ".",
+      thousands: " ",
+      grouping: [3],
+    }).format(',.2r')(d) + suffix;
   }
 };
