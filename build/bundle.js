@@ -20827,7 +20827,7 @@
       v.concepts = {};
     } else {
       v.reader = DDFServiceReader.getReader();
-      v.reader.init({service: 'https://big-waffle.gapminder.org', name: v.dataset});
+      v.reader.init({service: 'https://small-waffle.gapminder.org/v2', name: v.dataset});
       v.conceptPromise = v.reader
         .read({select: {key: ["concept"], value: v.cprops}, from: "concepts"})
         .then(result => v.concepts = result)

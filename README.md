@@ -2,10 +2,11 @@
 Generates linechart by instructions from google spareadsheet
 https://docs.google.com/spreadsheets/d/1OmmVh9M6Q-3Nb0Fy0xGyYsnDYQbl4fBCmvkCa_rdCf0
 
-Fetches data from big-waffle server using ddfservice reader
+Fetches data from small-waffle server using ddfservice reader
+Uses endpoint https://small-waffle.gapminder.org/v2
 
 # run locally
-npm i
+npm i  
 npm start
 
 # demo
